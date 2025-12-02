@@ -61,4 +61,345 @@
             const [blocks, setBlocks] = useState([]);
             const containerRef = useRef(null);
             const colHeights = useRef([]); 
-            const COLORS = ['#EF4444', '#3B82F6', '#F59
+            const COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981', '#FFFFFF', '#8B5CF6'];
+            const BLOCK_SIZE = 60;
+
+            useEffect(() => {
+                if (!containerRef.current) return;
+                const cols = Math.ceil(window.innerWidth / BLOCK_SIZE);
+                colHeights.current = new Array(cols).fill(0);
+                let blockIdCounter = 0;
+                const maxBlocks = 40; 
+
+                const interval = setInterval(() => {
+                    if (blockIdCounter >= maxBlocks) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    const randomCol = Math.floor(Math.random() * cols);
+                    const currentColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+                    const currentHeight = colHeights.current[randomCol];
+                    
+                    const newBlock = {
+                        id: blockIdCounter++,
+                        col: randomCol,
+                        targetBottom: currentHeight,
+                        color: currentColor,
+                    };
+                    setBlocks(prev => [...prev, newBlock]);
+                    colHeights.current[randomCol] += (BLOCK_SIZE * 0.8);
+                }, 800);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-gray-100">
+                    <style>{`
+                        .lego-block {
+                            position: absolute; width: 60px; height: 50px; border-radius: 2px;
+                            box-shadow: inset -2px -4px 0 rgba(0,0,0,0.15), 4px 4px 8px rgba(0,0,0,0.05);
+                            transition: top 1.5s cubic-bezier(0.25, 1, 0.5, 1); will-change: top;
+                        }
+                        .lego-block::before {
+                            content: ''; position: absolute; top: -8px; left: 6px; width: 48px; height: 8px;
+                            background-color: inherit; filter: brightness(1.1); border-radius: 4px 4px 0 0;
+                            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                        }
+                    `}</style>
+                    {blocks.map((block) => (
+                        <div key={block.id} className="lego-block"
+                            style={{
+                                left: block.col * BLOCK_SIZE,
+                                backgroundColor: block.color,
+                                top: -100,
+                                transform: `translateY(calc(100vh - ${block.targetBottom + 60}px))`
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        };
+
+        // --- 4. 뷰 컴포넌트들 (모두 완성됨) ---
+
+        // 4.1 DashboardView
+        const DashboardView = () => {
+            const [expanded, setExpanded] = useState({});
+            const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+            const pieData = [{ name: 'Completed', value: 102, fill: '#2563EB' }, { name: 'Remaining', value: 18, fill: '#E5E7EB' }];
+
+            return (
+                <div className="animate-fade-in space-y-6">
+                    <LegoStackingBackground />
+                    <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-sm">
+                        <h2 className="text-2xl font-bold mb-2">안녕하세요, 학습자님! 👋</h2>
+                        <p className="text-gray-600">오늘도 나만의 학습 여정을 벽돌 쌓듯 차곡차곡 쌓아보세요.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 차트 영역 */}
+                        <div className="bg-white/95 backdrop-blur-sm p-6 rounded-lg shadow-sm">
+                            <h3 className="text-lg font-semibold mb-4">졸업 학점 달성도</h3>
+                            <div className="h-64 flex justify-center items-center">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                                            {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                            <Label value="85%" position="center" className="text-3xl font-bold fill-blue-600" style={{ fontSize: '24px', fontWeight: 'bold' }} />
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* 현황 영역 */}
+                        <div className="bg-white/95 backdrop-blur-sm p-6 rounded-lg shadow-sm space-y-4">
+                             <h3 className="text-lg font-semibold mb-4">나의 모듈 현황</h3>
+                             <div className="border rounded-lg p-4">
+                                <button onClick={() => toggle('m1')} className="w-full flex justify-between items-center font-bold">
+                                    <span>🧩 AI 융합 모듈 (진행중)</span>
+                                    <ChevronDown className={`w-5 h-5 transition-transform ${expanded['m1'] ? 'rotate-180' : ''}`} />
+                                </button>
+                                {expanded['m1'] && <div className="mt-3 text-sm text-gray-600 pl-2 border-l-2 border-blue-500">파이썬프로그래밍 (A+)<br/>인공지능기초 (수강중)</div>}
+                             </div>
+                             <div className="border rounded-lg p-4">
+                                <button onClick={() => toggle('m2')} className="w-full flex justify-between items-center font-bold">
+                                    <span>🧩 마케팅 데이터 모듈 (예정)</span>
+                                    <ChevronDown className={`w-5 h-5 transition-transform ${expanded['m2'] ? 'rotate-180' : ''}`} />
+                                </button>
+                                {expanded['m2'] && <div className="mt-3 text-sm text-gray-600 pl-2 border-l-2 border-green-500">마케팅원론<br/>소비자행동론</div>}
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4.2 AiRecommendationView
+        const AiRecommendationView = () => {
+             const [loading, setLoading] = useState(false);
+             const [result, setResult] = useState(null);
+
+             const handleAnalyze = () => {
+                 setLoading(true);
+                 setTimeout(() => {
+                     setResult({
+                         title: "빅데이터 분석 기초 MD",
+                         reason: "현재 수강하신 통계학 과목 성적이 우수하며, 최근 IT 트렌드에 관심이 많으신 점을 고려했습니다."
+                     });
+                     setLoading(false);
+                 }, 1500);
+             };
+
+             return (
+                 <div className="space-y-6 animate-fade-in bg-white/95 p-6 rounded-lg shadow-sm">
+                     <h2 className="text-2xl font-bold">🤖 AI 추천</h2>
+                     <p className="text-gray-600">학습 이력과 관심사를 분석하여 최적의 마이크로 디그리를 추천합니다.</p>
+                     
+                     <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                        <textarea className="w-full p-3 border rounded mb-4" placeholder="관심 분야를 입력해주세요 (예: 마케팅, AI, 디자인)" rows={3}></textarea>
+                        <button onClick={handleAnalyze} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                            {loading ? "분석 중..." : "AI 추천 받기"}
+                        </button>
+                     </div>
+
+                     {result && (
+                         <div className="bg-green-50 p-6 rounded-lg border border-green-200 animate-slide-in-left">
+                             <h3 className="font-bold text-lg text-green-800 mb-2">추천 결과: {result.title}</h3>
+                             <p className="text-green-700">{result.reason}</p>
+                         </div>
+                     )}
+                 </div>
+             );
+        };
+
+        // 4.3 CurriculumDesignView
+        const CurriculumDesignView = () => (
+            <div className="animate-fade-in bg-white/95 p-6 rounded-lg shadow-sm h-[600px]">
+                <h2 className="text-2xl font-bold mb-4">📐 나의 모듈 설계</h2>
+                <div className="flex flex-col md:flex-row h-full gap-4">
+                    <div className="w-full md:w-1/3 bg-gray-50 p-4 rounded border">
+                        <h3 className="font-bold mb-2">교과목 라이브러리</h3>
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                            {['파이썬기초', '웹디자인', '데이터분석', '경영학원론', '마케팅입문', '재무회계'].map(sub => (
+                                <div key={sub} className="bg-white p-3 rounded shadow-sm border cursor-move hover:bg-blue-50 flex justify-between">
+                                    <span>{sub}</span>
+                                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">3학점</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="w-full md:w-2/3 bg-blue-50 p-4 rounded border border-dashed border-blue-300 flex flex-col justify-center items-center text-blue-400 relative">
+                        <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-bold shadow-sm text-blue-600">설계 공간</div>
+                        <span className="text-4xl mb-2">+</span>
+                        <span>이곳으로 과목을 드래그하세요</span>
+                        <span className="text-sm mt-2 text-gray-400">(기능 체험 UI입니다)</span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // 4.4 LearningHistoryView (완성)
+        const LearningHistoryView = () => {
+            const historyData = [
+                { year: '2023-1', subject: '컴퓨터개론', credit: 3, grade: 'A+' },
+                { year: '2023-1', subject: '글쓰기기초', credit: 2, grade: 'B+' },
+                { year: '2023-2', subject: '파이썬프로그래밍', credit: 3, grade: 'A0' },
+                { year: '2023-2', subject: '대학영어', credit: 2, grade: 'A+' },
+                { year: '2024-1', subject: '자료구조', credit: 3, grade: 'B+' },
+            ];
+
+            return (
+                <div className="p-6 bg-white rounded shadow animate-fade-in">
+                    <h2 className="text-2xl font-bold mb-6">📚 나의 학습 이력</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학기</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">교과목명</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학점</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">성적</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {historyData.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.year}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.subject}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.credit}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">{item.grade}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4.5 ModuleExplorationView (완성)
+        const ModuleExplorationView = () => {
+            const modules = [
+                { title: 'AI 서비스 개발 MD', tag: '공학', color: 'bg-indigo-100 text-indigo-800' },
+                { title: '디지털 마케팅 MD', tag: '상경', color: 'bg-green-100 text-green-800' },
+                { title: '에듀테크 콘텐츠 MD', tag: '교육', color: 'bg-yellow-100 text-yellow-800' },
+                { title: '빅데이터 분석 MD', tag: '융합', color: 'bg-blue-100 text-blue-800' },
+            ];
+
+            return (
+                <div className="p-6 bg-white rounded shadow animate-fade-in">
+                    <h2 className="text-2xl font-bold mb-6">🔍 모듈 탐색</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {modules.map((mod, idx) => (
+                            <div key={idx} className="border rounded-xl p-6 hover:shadow-lg transition cursor-pointer bg-white group">
+                                <span className={`text-xs px-2 py-1 rounded-full font-bold ${mod.color}`}>{mod.tag}</span>
+                                <h3 className="text-xl font-bold mt-3 mb-2 group-hover:text-blue-600">{mod.title}</h3>
+                                <p className="text-gray-500 text-sm mb-4">해당 분야의 핵심 역량을 단기간에 습득할 수 있는 과정입니다.</p>
+                                <button className="w-full py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 font-medium transition">상세보기</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 5. 메인 App 컴포넌트 ---
+        function App() {
+            const [currentView, setCurrentView] = useState(ViewState.DASHBOARD);
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+            const NavItem = ({ view, label, icon: Icon }) => {
+                const isActive = currentView === view;
+                return (
+                    <li>
+                        <button
+                            onClick={() => {
+                                setCurrentView(view);
+                                setIsMobileMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-colors ${
+                                isActive 
+                                    ? 'bg-blue-100 text-blue-700 font-semibold' 
+                                    : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                        >
+                            <Icon className="w-5 h-5" />
+                            {label}
+                        </button>
+                    </li>
+                );
+            };
+
+            const SidebarContent = () => (
+                <>
+                    <div className="flex justify-between items-center mb-8">
+                        <h1 className="text-xl font-bold text-gray-900">TU 학습설계 AI</h1>
+                        {isMobileMenuOpen && (
+                            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-gray-500">
+                                <XIcon className="w-6 h-6" />
+                            </button>
+                        )}
+                    </div>
+                    <nav className="flex-1">
+                        <ul className="space-y-2">
+                            <NavItem view={ViewState.DASHBOARD} label="대시보드" icon={DashboardIcon} />
+                            <NavItem view={ViewState.LEARNING_HISTORY} label="학습 이력" icon={HistoryIcon} />
+                            <NavItem view={ViewState.MODULE_EXPLORATION} label="모듈 탐색" icon={ExploreIcon} />
+                            <NavItem view={ViewState.CURRICULUM_DESIGN} label="나의 모듈 설계" icon={DesignIcon} />
+                            <NavItem view={ViewState.AI_RECOMMENDATION} label="AI 추천" icon={AiIcon} />
+                        </ul>
+                    </nav>
+                    <div className="border-t pt-4">
+                        <ul className="space-y-2">
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"><span className="text-sm">커뮤니티</span></a></li>
+                        </ul>
+                    </div>
+                </>
+            );
+
+            return (
+                <div className="flex h-screen bg-gray-100">
+                    <aside className="w-64 bg-white p-6 border-r hidden lg:flex flex-col fixed h-full z-10">
+                        <SidebarContent />
+                    </aside>
+
+                    {isMobileMenuOpen && (
+                        <div className="fixed inset-0 z-50 lg:hidden">
+                            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsMobileMenuOpen(false)}></div>
+                            <aside className="fixed inset-y-0 left-0 w-64 bg-white p-6 shadow-xl flex flex-col animate-slide-in-left">
+                                <SidebarContent />
+                            </aside>
+                        </div>
+                    )}
+
+                    <main className="flex-1 lg:ml-64 overflow-y-auto">
+                        <div className="p-6 max-w-7xl mx-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <button className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100" onClick={() => setIsMobileMenuOpen(true)}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                                </button>
+                                <div className="hidden lg:block"></div>
+                                <div className="relative w-full max-w-xs">
+                                    <input type="text" placeholder="모듈명, 교과목명 검색..." className="w-full pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                </div>
+                            </div>
+
+                            {/* Views Rendering */}
+                            {currentView === ViewState.DASHBOARD && <DashboardView />}
+                            {currentView === ViewState.AI_RECOMMENDATION && <AiRecommendationView />}
+                            {currentView === ViewState.LEARNING_HISTORY && <LearningHistoryView />}
+                            {currentView === ViewState.MODULE_EXPLORATION && <ModuleExplorationView />}
+                            {currentView === ViewState.CURRICULUM_DESIGN && <CurriculumDesignView />}
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
